@@ -176,6 +176,15 @@ host port, and Compose project name (`mira-dev` or `mira-prod`) in that file.
 The workflow regenerates it on every deployment, so edit the tracked
 `docker-compose.prod.yml` template or the GitHub environment's `HOST_PORT`
 variable rather than editing the generated file on the host.
+For same-repository pull requests, the dev build and deployment both use the
+PR merge commit, so template changes (including networks) can be tested on the
+dev host before merging. This workflow skips fork PR deployments. Production
+uses the merged commit after a push to `main`.
+Because the dev environment executes PR Compose configurations on the host,
+restrict branch write access, review workflow changes, and require a reviewer
+for the GitHub `dev` environment. Look for `Generated Compose file:` to confirm
+which host directory and template commit were used. The generated file is
+named `docker-compose.yml`, not `docker-compose.prod.yml`.
 
 Create a separate `.env` with the bot's credentials in each deploy directory
 before the first deployment. The workflow requires this file but does not copy,

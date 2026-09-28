@@ -23,6 +23,8 @@ env:
 
 jobs:
   build-and-push:
+    # Do not push images or deploy Compose changes from fork PRs to our host.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.tag.outputs.image }}
@@ -55,16 +57,16 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     needs: build-and-push
     # Dev and prod share one host, so a single self-hosted runner handles both;
     # the stacks are kept apart via DEPLOY_PATH and the generated Compose project name.
     runs-on: self-hosted
     environment: ${{ github.event_name == 'pull_request' && 'dev' || 'production' }}
     steps:
+      # Default PR checkout is the merge commit: the same source used to build
+      # the dev image, including changes to the Compose template in this PR.
       - uses: actions/checkout@v4
-        with:
-          # Deploy configuration from main, not from unreviewed PR changes.
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
 
       - name: Deploy
         working-directory: ${{ vars.DEPLOY_PATH }}
@@ -89,6 +91,7 @@ jobs:
           } > "$temp_file"
           docker compose -f "$temp_file" config --quiet
           mv -f -- "$temp_file" docker-compose.yml
+          echo "Generated Compose file: $PWD/docker-compose.yml (template commit: $(git -C "$GITHUB_WORKSPACE" rev-parse --short HEAD))"
 
           docker compose pull
           docker compose up -d
