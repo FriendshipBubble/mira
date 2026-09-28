@@ -44,7 +44,7 @@ jobs:
           else
             TAG=prod
           fi
-          echo "image=${IMAGE_NAME}:${TAG}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE_NAME,,}:${TAG}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/build-push-action@v6
         with:
