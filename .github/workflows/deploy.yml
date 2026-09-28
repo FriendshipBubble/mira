@@ -57,7 +57,7 @@ jobs:
   deploy:
     needs: build-and-push
     # Dev and prod share one host, so a single self-hosted runner handles both;
-    # the stacks are kept apart via DEPLOY_PATH and COMPOSE_PROJECT_NAME per environment.
+    # the stacks are kept apart via DEPLOY_PATH and the generated Compose project name.
     runs-on: self-hosted
     environment: ${{ github.event_name == 'pull_request' && 'dev' || 'production' }}
     steps:
@@ -68,12 +68,28 @@ jobs:
 
       - name: Deploy
         working-directory: ${{ vars.DEPLOY_PATH }}
+        env:
+          DEPLOY_IMAGE: ${{ needs.build-and-push.outputs.image }}
+          DEPLOY_PORT: ${{ vars.HOST_PORT }}
+          DEPLOY_ENV: ${{ github.event_name == 'pull_request' && 'dev' || 'prod' }}
         run: |
-          set -e
-          cp -- "$GITHUB_WORKSPACE/docker-compose.prod.yml" ./docker-compose.prod.yml
-          export MIRA_IMAGE=${{ needs.build-and-push.outputs.image }}
-          export COMPOSE_PROJECT_NAME=mira-${{ github.event_name == 'pull_request' && 'dev' || 'prod' }}
-          export HOST_PORT=${{ vars.HOST_PORT }}
-          docker compose -f docker-compose.prod.yml pull
-          docker compose -f docker-compose.prod.yml up -d
+          set -euo pipefail
+          test -f .env || { echo 'Missing host .env in deploy directory' >&2; exit 1; }
+          [[ "$DEPLOY_PORT" =~ ^[0-9]+$ ]] && ((10#$DEPLOY_PORT >= 1 && 10#$DEPLOY_PORT <= 65535)) || { echo 'Invalid HOST_PORT' >&2; exit 1; }
+
+          # Render the checked-in template without resolving env_file (which contains secrets).
+          # Keep project name and deployment settings in the file for manual docker compose commands.
+          temp_file=$(mktemp ./docker-compose.yml.XXXXXX)
+          trap 'rm -f -- "$temp_file"' EXIT
+          {
+            printf 'name: mira-%s\n' "$DEPLOY_ENV"
+            sed -e "s|^    image: .*|    image: ${DEPLOY_IMAGE}|" \
+                -e "s|^      - \".*:8000\"$|      - \"${DEPLOY_PORT}:8000\"|" \
+                "$GITHUB_WORKSPACE/docker-compose.prod.yml"
+          } > "$temp_file"
+          docker compose -f "$temp_file" config --quiet
+          mv -f -- "$temp_file" docker-compose.yml
+
+          docker compose pull
+          docker compose up -d
           docker image prune -f

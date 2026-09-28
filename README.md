@@ -167,3 +167,29 @@ Expected result:
   - Restart login flow from `/oauth/discord/login` and do not reuse old callback URLs.
 - `Import ... could not be resolved` in editor:
   - Ensure VS Code uses `mira/.venv` interpreter.
+
+## Host deployment with Docker Compose
+
+The deployment workflow writes a self-contained `docker-compose.yml` into each
+environment's `DEPLOY_PATH` on the self-hosted runner. It pins the image tag,
+host port, and Compose project name (`mira-dev` or `mira-prod`) in that file.
+The workflow regenerates it on every deployment, so edit the tracked
+`docker-compose.prod.yml` template or the GitHub environment's `HOST_PORT`
+variable rather than editing the generated file on the host.
+
+Create a separate `.env` with the bot's credentials in each deploy directory
+before the first deployment. The workflow requires this file but does not copy,
+print, or overwrite it. From the appropriate `DEPLOY_PATH` on the host, use
+ordinary commands without exporting image, port, or project variables:
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+The checked-in `docker-compose.prod.yml` is the deployment template; the host
+uses its generated `docker-compose.yml` by default. If the GHCR image is private,
+the host's Docker installation must already be authenticated to pull it.
