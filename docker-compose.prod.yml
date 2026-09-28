@@ -1,0 +1,7 @@
+services:
+  mira:
+    image: ${MIRA_IMAGE:-ghcr.io/friendshipbubble/mira:prod}
+    env_file: .env
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    restart: unless-stopped

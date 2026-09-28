@@ -1,0 +1,73 @@
+name: Build, Push & Deploy
+
+# PRs into main are built, pushed as the `dev` tag and rolled out to the
+# shared dev stack so reviewers can test the branch. Merges to main
+# (push event) build/push the `prod` tag and roll out to production.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-${{ github.event_name == 'pull_request' && 'dev' || 'prod' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.tag.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TAG=dev
+          else
+            TAG=prod
+          fi
+          echo "image=${IMAGE_NAME}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tag.outputs.image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    # Dev and prod share one host, so a single self-hosted runner handles both;
+    # the stacks are kept apart via DEPLOY_PATH and COMPOSE_PROJECT_NAME per environment.
+    runs-on: self-hosted
+    environment: ${{ github.event_name == 'pull_request' && 'dev' || 'production' }}
+    steps:
+      - name: Deploy
+        working-directory: ${{ vars.DEPLOY_PATH }}
+        run: |
+          set -e
+          export MIRA_IMAGE=${{ needs.build-and-push.outputs.image }}
+          export COMPOSE_PROJECT_NAME=mira-${{ github.event_name == 'pull_request' && 'dev' || 'prod' }}
+          export HOST_PORT=${{ vars.HOST_PORT }}
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml up -d
+          docker image prune -f
