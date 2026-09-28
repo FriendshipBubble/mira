@@ -5,10 +5,11 @@ description and its expected `params` keys, and it becomes discoverable via
 GET /commands without needing separate docs to keep in sync.
 """
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any
 
-CommandHandler = Callable[[Dict[str, Any]], Awaitable[Any]]
+CommandHandler = Callable[[dict[str, Any]], Awaitable[Any]]
 
 
 @dataclass
@@ -16,17 +17,17 @@ class CommandSpec:
     name: str
     handler: CommandHandler
     description: str = ""
-    params: Dict[str, str] = field(default_factory=dict)  # param name -> description
+    params: dict[str, str] = field(default_factory=dict)  # param name -> description
 
 
-_COMMANDS: Dict[str, CommandSpec] = {}
+_COMMANDS: dict[str, CommandSpec] = {}
 
 
 def register_command(
     name: str,
     *,
     description: str = "",
-    params: Optional[Dict[str, str]] = None,
+    params: dict[str, str] | None = None,
 ) -> Callable[[CommandHandler], CommandHandler]:
     """Decorator to register an async handler under a unique command name."""
 
@@ -46,11 +47,11 @@ def get_command(name: str) -> CommandHandler:
     return spec.handler
 
 
-def available_commands() -> List[str]:
+def available_commands() -> list[str]:
     return sorted(_COMMANDS.keys())
 
 
-def describe_commands() -> List[Dict[str, Any]]:
+def describe_commands() -> list[dict[str, Any]]:
     """Full documentation payload: name, description and params per command."""
     return [
         {"name": spec.name, "description": spec.description, "params": spec.params}

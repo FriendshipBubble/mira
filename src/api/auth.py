@@ -1,5 +1,4 @@
 import secrets
-from typing import Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -19,7 +18,7 @@ from config import (
 oauth_states: set[str] = set()
 
 
-async def verify_service_api_key(x_api_key: Optional[str] = Header(default=None)) -> dict:
+async def verify_service_api_key(x_api_key: str | None = Header(default=None)) -> dict:
     """Auth for machine callers (e.g. the frontend's background worker) that
     cannot complete an interactive Discord OAuth flow. Uses a static shared
     secret instead of a per-user token."""
@@ -33,13 +32,12 @@ def require_discord_oauth_config():
         raise HTTPException(
             status_code=500,
             detail=(
-                "Discord OAuth is not configured. Set DISCORD_CLIENT_ID and "
-                "DISCORD_CLIENT_SECRET in your .env file."
+                "Discord OAuth is not configured. Set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET in your .env file."
             ),
         )
 
 
-def extract_bearer_token(authorization_header: Optional[str]) -> Optional[str]:
+def extract_bearer_token(authorization_header: str | None) -> str | None:
     if not authorization_header:
         return None
     parts = authorization_header.split(" ", 1)
@@ -49,10 +47,10 @@ def extract_bearer_token(authorization_header: Optional[str]) -> Optional[str]:
 
 
 def resolve_token(
-    access_token: Optional[str],
-    authorization_header: Optional[str],
-    cookie_token: Optional[str],
-) -> Optional[str]:
+    access_token: str | None,
+    authorization_header: str | None,
+    cookie_token: str | None,
+) -> str | None:
     return access_token or extract_bearer_token(authorization_header) or cookie_token
 
 
@@ -80,7 +78,7 @@ async def exchange_discord_oauth_code(
     code: str,
     state: str,
     response: Response,
-    error: Optional[str] = None,
+    error: str | None = None,
 ) -> dict:
     require_discord_oauth_config()
 
@@ -124,7 +122,7 @@ async def exchange_discord_oauth_code(
     return token_data
 
 
-async def get_discord_user_from_token(token: Optional[str]) -> dict:
+async def get_discord_user_from_token(token: str | None) -> dict:
     if not token:
         raise HTTPException(
             status_code=400,
@@ -197,12 +195,12 @@ async def get_current_member_in_target_guild(token: str) -> dict:
 def discord_authorization_wrapper(
     *,
     require_admin: bool = False,
-    required_role_id: Optional[str] = None,
+    required_role_id: str | None = None,
 ):
     async def dependency(
-        access_token: Optional[str] = None,
-        authorization: Optional[str] = Header(default=None),
-        discord_access_token: Optional[str] = Cookie(default=None, alias=DISCORD_AUTH_COOKIE_NAME),
+        access_token: str | None = None,
+        authorization: str | None = Header(default=None),
+        discord_access_token: str | None = Cookie(default=None, alias=DISCORD_AUTH_COOKIE_NAME),
     ) -> dict:
         token = resolve_token(access_token, authorization, discord_access_token)
         if not token:

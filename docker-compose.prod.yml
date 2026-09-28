@@ -5,3 +5,10 @@ services:
     ports:
       - "${HOST_PORT:-8000}:8000"
     restart: unless-stopped
+    networks:
+      - external
+  
+networks:
+  external:
+    external: true
+    name: infra_external
