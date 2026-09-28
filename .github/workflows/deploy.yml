@@ -61,10 +61,16 @@ jobs:
     runs-on: self-hosted
     environment: ${{ github.event_name == 'pull_request' && 'dev' || 'production' }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          # Deploy configuration from main, not from unreviewed PR changes.
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+
       - name: Deploy
         working-directory: ${{ vars.DEPLOY_PATH }}
         run: |
           set -e
+          cp -- "$GITHUB_WORKSPACE/docker-compose.prod.yml" ./docker-compose.prod.yml
           export MIRA_IMAGE=${{ needs.build-and-push.outputs.image }}
           export COMPOSE_PROJECT_NAME=mira-${{ github.event_name == 'pull_request' && 'dev' || 'prod' }}
           export HOST_PORT=${{ vars.HOST_PORT }}
