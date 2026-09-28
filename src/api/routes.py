@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Response
 from pydantic import BaseModel
 
@@ -37,15 +35,15 @@ async def discord_oauth_login():
 
 
 @router.get("/oauth/discord/callback")
-async def discord_oauth_callback(code: str, state: str, response: Response, error: Optional[str] = None):
+async def discord_oauth_callback(code: str, state: str, response: Response, error: str | None = None):
     return await exchange_discord_oauth_code(code=code, state=state, response=response, error=error)
 
 
 @router.get("/oauth/discord/me")
 async def discord_oauth_me(
-    access_token: Optional[str] = None,
-    authorization: Optional[str] = Header(default=None),
-    discord_access_token: Optional[str] = Cookie(default=None, alias=DISCORD_AUTH_COOKIE_NAME),
+    access_token: str | None = None,
+    authorization: str | None = Header(default=None),
+    discord_access_token: str | None = Cookie(default=None, alias=DISCORD_AUTH_COOKIE_NAME),
 ):
     token = resolve_token(access_token, authorization, discord_access_token)
     user = await get_discord_user_from_token(token)

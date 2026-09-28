@@ -1,5 +1,4 @@
 import asyncio
-from typing import Optional
 
 import discord
 
@@ -11,7 +10,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 bot = BubbleBot(intents=intents)
-bot_task: Optional[asyncio.Task] = None
+bot_task: asyncio.Task | None = None
 
 
 @bot.event
@@ -19,7 +18,7 @@ async def on_ready():
     print(f"{bot.user.name} has connected to Discord!")
 
 
-def bot_task_error() -> Optional[str]:
+def bot_task_error() -> str | None:
     if bot_task is None or not bot_task.done() or bot_task.cancelled():
         return None
     exc = bot_task.exception()
