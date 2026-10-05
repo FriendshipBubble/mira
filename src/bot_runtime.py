@@ -1,10 +1,19 @@
 import asyncio
+import logging
 
 import discord
 
 from bot_wrapper import BubbleBot
 from commands import register_command
-from config import CHANNEL_ID, TOKEN
+from config import APP_ENV, CHANNEL_ID, LOCAL_DEBUG, TOKEN
+
+logging.basicConfig(
+    level=logging.DEBUG if LOCAL_DEBUG else logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logging.getLogger().setLevel(logging.DEBUG if LOCAL_DEBUG else logging.INFO)
+logging.getLogger("discord").setLevel(logging.DEBUG if LOCAL_DEBUG else logging.INFO)
+logger = logging.getLogger(__name__)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -15,7 +24,36 @@ bot_task: asyncio.Task | None = None
 
 @bot.event
 async def on_ready():
-    print(f"{bot.user.name} has connected to Discord!")
+    logger.info("%s has connected to Discord (environment=%s)", bot.user, APP_ENV)
+    if LOCAL_DEBUG:
+        logger.debug(
+            "Discord connection ready: user_id=%s guild_count=%d latency=%.3fs",
+            bot.user.id if bot.user else None,
+            len(bot.guilds),
+            bot.latency,
+        )
+
+
+@bot.listen()
+async def on_app_command_completion(interaction: discord.Interaction, command: discord.app_commands.Command):
+    if LOCAL_DEBUG:
+        logger.debug(
+            "Slash command completed: command=/%s user_id=%s guild_id=%s",
+            command.qualified_name,
+            interaction.user.id,
+            interaction.guild_id,
+        )
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    logger.error(
+        "Slash command failed: command=/%s user_id=%s guild_id=%s",
+        interaction.command.qualified_name if interaction.command else "unknown",
+        interaction.user.id,
+        interaction.guild_id,
+        exc_info=(type(error), error, error.__traceback__),
+    )
 
 
 def bot_task_error() -> str | None:
@@ -32,8 +70,8 @@ async def run_bot():
         await bot.start(TOKEN)
     except KeyboardInterrupt:
         await bot.close()
-    except Exception as exc:
-        print(f"Discord bot failed to start: {exc}")
+    except Exception:
+        logger.exception("Discord bot failed to start")
         raise
 
 
