@@ -1,7 +1,7 @@
 import discord
+import httpx
 from discord import app_commands
 from discord.ext import commands
-import httpx
 
 from discord_utils import image_file_from_url
 
