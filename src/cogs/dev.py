@@ -9,7 +9,7 @@ class OverCog(commands.Cog):
 
     async def _send_info(self, interaction: discord.Interaction):
         content = ''
-        content += 'Ik ben gecreëerd en word onderhouden de devs van deze server!\n'
+        content += 'Ik ben gecreëerd en word onderhouden door de devs van deze server!\n'
         content += 'Vraag gerust een van de devs over mij! (ze bijten niet)!\n'
         content += 'Je kan mijn werking op deze link vinden: <https://github.com/FriendshipBubble/mira>'
         await interaction.response.send_message(content, ephemeral=True)
