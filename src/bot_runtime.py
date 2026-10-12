@@ -103,7 +103,7 @@ async def send_message(message_text: str):
     if not bot.is_ready():
         try:
             await asyncio.wait_for(bot.wait_until_ready(), timeout=10)
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             raise RuntimeError("Discord bot is not ready") from exc
 
     channel = bot.get_channel(CHANNEL_ID)
