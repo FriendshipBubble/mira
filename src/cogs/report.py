@@ -9,24 +9,16 @@ class ReportCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(description='Rapporteer een bericht')
+    @app_commands.command(description='Stuur een rapport annoniem naar de moderators')
     @app_commands.describe(
         omschrijving='Waarom je iets wilt rapporteren',
         persoon='Optioneel: de persoon die je wilt rapporteren',
-        annoniem='Of je naam verborgen blijft voor moderators (Standaard: Ja)',
-    )
-    @app_commands.choices(
-        annoniem=[
-            app_commands.Choice(name='Ja', value='ja'),
-            app_commands.Choice(name='Nee', value='nee'),
-        ]
     )
     async def report(
         self,
         interaction: discord.Interaction,
         omschrijving: str,
         persoon: discord.Member | None = None,
-        annoniem: str = 'ja',
     ):
         await interaction.response.defer(ephemeral=True)
 
@@ -64,11 +56,7 @@ class ReportCog(commands.Cog):
         persoon_omschrijving = f'{persoon.mention} (`{persoon.id}`)' if persoon else 'Niet opgegeven'
         embed.add_field(name='Gerapporteerde persoon', value=persoon_omschrijving, inline=False)
         embed.add_field(name='Omschrijving', value=omschrijving, inline=False)
-        embed.add_field(
-            name='Gemeld door',
-            value='Anoniem' if annoniem == 'ja' else f'{interaction.user.mention} (`{interaction.user.id}`)',
-            inline=False,
-        )
+        embed.add_field(name='Gemeld door', value='Anoniem', inline=False)
         if interaction.guild:
             embed.add_field(name='Server', value=interaction.guild.name, inline=True)
         if interaction.channel:
