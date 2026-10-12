@@ -3,6 +3,8 @@ services:
     build: .
     image: mira:local
     env_file: .env
+    environment:
+      APP_ENV: local
     ports:
       - "8000:8000"
     restart: unless-stopped

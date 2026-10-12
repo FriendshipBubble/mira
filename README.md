@@ -39,14 +39,20 @@ DISCORD_CLIENT_SECRET=your_discord_app_client_secret
 DISCORD_REDIRECT_URI=http://127.0.0.1:8000/oauth/discord/callback
 DISCORD_OAUTH_SCOPES=identify guilds guilds.members.read
 DISCORD_ADMIN_GUILD_ID=your_server_guild_id
+DISCORD_REPORT_CHANNEL_ID=your_moderation_channel_id
 # DISCORD_ALLOWED_ROLE_ID=your_allowed_role_id
 ```
 
 Notes:
+- Local runs default to `APP_ENV=local`, which enables verbose Discord and slash-command diagnostics. Set `APP_ENV=production` when running outside the local Compose configuration.
+- Local runs skip slash-command syncing by default, preventing every reload from making another Discord API request. To register or update commands during development, temporarily set `SYNC_COMMANDS=true` in `.env` and restart once; local sync targets `DISCORD_COMMAND_GUILD_ID` (or falls back to `DISCORD_ADMIN_GUILD_ID`) for immediate updates. Set it back to `false` afterward. Production syncs global commands on startup.
+- If local guild commands appear alongside older global commands, set both `SYNC_COMMANDS=true` and `CLEAR_GLOBAL_COMMANDS=true` for one startup to remove the global registrations. This is destructive for all servers using the same Discord application, so only do this if that application is not also serving production; set both back to `false` afterward. Discord may take time to stop displaying cached global commands.
+- Keep `SYNC_COMMANDS=false` while iterating on non-command code. Discord rate limits are automatic; don't repeatedly restart just to retry a sync.
 - `DISCORD_CHANNEL_ID` must be a numeric Discord channel ID.
 - `DISCORD_TOKEN` is required and loaded automatically from `.env`.
 - For OAuth, add the exact same callback URL (`DISCORD_REDIRECT_URI`) in your Discord Developer Portal app settings.
 - `DISCORD_ADMIN_GUILD_ID` is required for protected `/message/` and `/say/` calls.
+- `DISCORD_REPORT_CHANNEL_ID` is the channel where `/report` submissions are sent; the bot needs permission to view the channel and send messages/embed links there.
 - `DISCORD_OAUTH_SCOPES` should include `identify guilds guilds.members.read`.
 - If `DISCORD_ALLOWED_ROLE_ID` is set, protected endpoints allow: admin OR member of that role.
 - If `DISCORD_ALLOWED_ROLE_ID` is not set, protected endpoints allow: admin only.
@@ -61,7 +67,7 @@ uvicorn main:app --app-dir src --reload
 
 Expected startup logs include:
 - `Loaded cog: cogs.ping`
-- `Synced 1 slash command(s)`
+- `Slash-command sync skipped (set SYNC_COMMANDS=true to sync)` (default local mode)
 - `<bot_name> has connected to Discord!`
 
 ## 5) Test the bot

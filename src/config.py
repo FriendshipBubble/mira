@@ -4,6 +4,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+APP_ENV = os.getenv("APP_ENV", "local").strip().lower()
+LOCAL_DEBUG = APP_ENV in {"local", "development", "dev"}
+SYNC_COMMANDS = os.getenv("SYNC_COMMANDS", "false" if LOCAL_DEBUG else "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+CLEAR_GLOBAL_COMMANDS = os.getenv("CLEAR_GLOBAL_COMMANDS", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
 TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID = int(os.getenv("DISCORD_CHANNEL_ID", "1471581581746634959"))
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
@@ -11,6 +26,8 @@ DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "http://127.0.0.1:8000/oauth/discord/callback")
 DISCORD_OAUTH_SCOPES = os.getenv("DISCORD_OAUTH_SCOPES", "identify guilds guilds.members.read")
 DISCORD_ADMIN_GUILD_ID = os.getenv("DISCORD_ADMIN_GUILD_ID")
+DISCORD_COMMAND_GUILD_ID = os.getenv("DISCORD_COMMAND_GUILD_ID")
+DISCORD_REPORT_CHANNEL_ID = os.getenv("DISCORD_REPORT_CHANNEL_ID")
 DISCORD_ALLOWED_ROLE_ID = os.getenv("DISCORD_ALLOWED_ROLE_ID")
 DISCORD_AUTH_COOKIE_NAME = os.getenv("DISCORD_AUTH_COOKIE_NAME", "discord_access_token")
 
